@@ -414,6 +414,44 @@ def compute_year_stability(ds: Dataset) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+
+
+
+def compute_delta_curve_by_year(ds: Dataset) -> pd.DataFrame:
+    """For each (year, horizon d001..d049) compute mean_PnL D10 - mean_PnL D1.
+
+    Deciles re-bucketed within each year so D1/D10 reflect that year's PUT_SKEW
+    distribution (not the global one). Returns long-format DataFrame.
+    """
+    rows = []
+    sub_all = ds.df.copy()
+    sub_all["year"] = sub_all[DATE_COL].dt.year
+    for y, g_year in sub_all.groupby("year", sort=True):
+        if len(g_year) < 50:
+            continue
+        for d in WINDOWS:
+            pnl_col = f"PnL_d{d:03d}_mediana"
+            if pnl_col not in g_year.columns:
+                continue
+            g = g_year[[SCORE_COL, pnl_col]].copy()
+            g = g.rename(columns={SCORE_COL: "score", pnl_col: "pnl"}).dropna(subset=["score", "pnl"])
+            if len(g) < 100:
+                continue
+            g_dec = _attach_deciles(g)
+            tbl = _decile_table(g_dec)
+            d1 = tbl[tbl["decile"] == 1]
+            d10 = tbl[tbl["decile"] == 10]
+            if d1.empty or d10.empty:
+                continue
+            rows.append({
+                "year": int(y),
+                "horizon_d": int(d),
+                "delta_mean_d10_d1": float(d10["mean"].iloc[0] - d1["mean"].iloc[0]),
+                "N": int(len(g)),
+            })
+    return pd.DataFrame(rows)
+
+
 def compute_regimes(ds: Dataset) -> pd.DataFrame:
     cols_needed = [SCORE_COL, f"PnL_d{PNL_REF_HORIZON:03d}_mediana", "PnL_d050_mediana"]
     available = [c for c in cols_needed if c in ds.df.columns]
@@ -731,6 +769,50 @@ def plot_delta_curve(horizons: pd.DataFrame, out_path: Path) -> None:
     plt.close(fig)
 
 
+
+
+
+def plot_delta_curve_by_year(by_year: pd.DataFrame, horizons: pd.DataFrame, out_path: Path) -> None:
+    """7 lineas (2019-2025) del spread D10-D1 por horizonte. La curva pooled
+    (todos los anios) se dibuja en gris discontinuo de fondo como referencia.
+    """
+    fig, ax = plt.subplots(figsize=(11, 5.0))
+
+    # Background: pooled all-years line as gray dashed reference
+    h = horizons.sort_values("horizon_d")
+    ax.plot(h["horizon_d"], h["delta_mean_d10_d1"], "--",
+            color=DARK_MUTED, linewidth=1.6, alpha=0.7,
+            label="Pooled (todos los anios)", zorder=1)
+
+    # Per-year lines, stable color palette
+    palette = {
+        2019: "#58a6ff",  # blue
+        2020: "#3fb950",  # green
+        2021: "#f85149",  # red
+        2022: "#d29922",  # amber
+        2023: "#a371f7",  # purple
+        2024: "#ff8b76",  # salmon
+        2025: "#79c0ff",  # light blue
+    }
+    if not by_year.empty:
+        for y, g in by_year.sort_values(["year", "horizon_d"]).groupby("year"):
+            color = palette.get(int(y), "#c9d1d9")
+            ax.plot(g["horizon_d"], g["delta_mean_d10_d1"], "-",
+                    color=color, linewidth=1.6, alpha=0.95,
+                    label=str(int(y)), zorder=3)
+
+    ax.axhline(0, color=DARK_MUTED, linewidth=0.8, linestyle="--", alpha=0.7)
+    ax.set_xlabel("Horizonte (dias)")
+    ax.set_ylabel("Delta PnL medio D10-D1 (pts)")
+    ax.set_title("Spread D10 - D1 por horizonte y anio (Batman MT)")
+    ax.set_xticks([1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 49])
+    ax.legend(loc="upper left", framealpha=0.9, facecolor=DARK_PANEL,
+              edgecolor=DARK_BORDER, ncol=2, fontsize=9)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)
+
+
 def plot_continuous_curve(curve: pd.DataFrame, out_path: Path) -> None:
     """Continuous PnL trajectory for HIGH (P80+) vs LOW (P20-) at entry, horizons 1..50."""
     if curve.empty:
@@ -983,6 +1065,7 @@ def build_evidence_json(
     years: pd.DataFrame,
     regimes: pd.DataFrame,
     tables: Dict[str, str],
+    delta_by_year: pd.DataFrame,
 ) -> dict:
     sp_by_h = {f'd{int(r.horizon_d):03d}': float(r.spearman) for r in horizons.itertuples()}
     delta_by_h = {f'd{int(r.horizon_d):03d}': float(r.delta_mean_d10_d1) for r in horizons.itertuples()}
@@ -1007,6 +1090,7 @@ def build_evidence_json(
         "year_stability": "evidence/put_skew_year_stability.png",
         "regime_pnl": "evidence/put_skew_regime_pnl.png",
         "delta_curve": "evidence/put_skew_delta_curve.png",
+        "delta_curve_by_year": "evidence/put_skew_delta_curve_by_year.png",
         "window_forward": "evidence/put_skew_window_forward.png",
         "continuous_curve": "evidence/put_skew_continuous_curve.png",
     }
@@ -1039,6 +1123,7 @@ def build_evidence_json(
             "deciles_d020": decs.to_dict(orient="records"),
             "year_stability": years.to_dict(orient="records"),
             "regimes": regimes.to_dict(orient="records"),
+            "delta_by_year": delta_by_year.to_dict(orient="records"),
         },
         "tables_html": tables,
         "images": images,
@@ -1075,6 +1160,10 @@ def main(push: bool) -> int:
         plot_regime_pnl(regimes, EVIDENCE_DIR / "put_skew_regime_pnl.png")
         plot_delta_curve(horizons, EVIDENCE_DIR / "put_skew_delta_curve.png")
 
+        print("[INFO] computing delta-curve by year (D10-D1 per horizon per year)")
+        delta_by_year = compute_delta_curve_by_year(ds)
+        plot_delta_curve_by_year(delta_by_year, horizons, EVIDENCE_DIR / "put_skew_delta_curve_by_year.png")
+
         print("[INFO] computing window-forward in-script (Batman MT trades)")
         wf = compute_window_forward(ds)
         plot_window_forward(wf, EVIDENCE_DIR / "put_skew_window_forward.png")
@@ -1093,7 +1182,7 @@ def main(push: bool) -> int:
         }
 
         print("[INFO] writing evidence/evidence.json")
-        ev = build_evidence_json(ds, horizons, decs, years, regimes, tables)
+        ev = build_evidence_json(ds, horizons, decs, years, regimes, tables, delta_by_year)
         out_json = EVIDENCE_DIR / "evidence.json"
         out_json.write_text(json.dumps(ev, ensure_ascii=False, separators=(",", ":")),
                             encoding="utf-8")
