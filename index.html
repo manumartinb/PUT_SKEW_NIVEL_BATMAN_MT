@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>PUT SKEW NIVEL - Batman MT Regime Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root {
+  --bg: #0d1117;
+  --panel: #161b22;
+  --text: #c9d1d9;
+  --muted: #8b949e;
+  --border: #30363d;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding: 16px;
+}
+.header {
+  max-width: 1200px;
+  margin: 0 auto 16px auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+h1 { font-size: 18px; margin: 0; font-weight: 600; }
+.subtitle { color: var(--muted); font-size: 13px; margin-top: 2px; }
+.latest {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  min-width: 220px;
+}
+.latest .v { font-size: 26px; font-weight: 700; }
+.latest .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
+.regime {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.regime.FAVORABLE { background: rgba(26,127,55,0.20); color: #3fb950; }
+.regime.NEUTRAL   { background: rgba(154,103,0,0.20); color: #d29922; }
+.regime.ADVERSO   { background: rgba(207,34,46,0.20); color: #f85149; }
+#chart {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+}
+.note {
+  max-width: 1200px;
+  margin: 12px auto;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+}
+.note strong { color: var(--text); }
+.footer {
+  max-width: 1200px;
+  margin: 14px auto 0 auto;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+.footer a { color: #58a6ff; text-decoration: none; }
+.footer a:hover { text-decoration: underline; }
+.error {
+  color: #f85149;
+  text-align: center;
+  padding: 40px;
+  font-family: monospace;
+}
+/* ----- Evidence section ----- */
+#evidence {
+  max-width: 1200px;
+  margin: 28px auto 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.ev-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 20px 24px;
+}
+.ev-card h2 {
+  font-size: 17px;
+  margin: 0 0 4px 0;
+  color: var(--text);
+  font-weight: 600;
+}
+.ev-card .ev-tag {
+  display: inline-block;
+  font-size: 10.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  margin-bottom: 10px;
+}
+.ev-card p {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: #b6bec9;
+  margin: 8px 0;
+}
+.ev-card p strong { color: var(--text); }
+.ev-card img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 14px auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.ev-card ul {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: #b6bec9;
+  margin: 8px 0;
+  padding-left: 22px;
+}
+.ev-card ul li { margin: 4px 0; }
+.ev-callout {
+  background: #21262d;
+  border-left: 3px solid #58a6ff;
+  padding: 10px 14px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #c9d1d9;
+  margin: 12px 0;
+}
+.ev-callout.warn { border-left-color: #d29922; }
+.ev-callout.bad  { border-left-color: #f85149; }
+.ev-callout.good { border-left-color: #3fb950; }
+.ev-meta {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 6px;
+}
+.ev-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  margin: 12px 0 4px 0;
+}
+.ev-table th, .ev-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+}
+.ev-table thead th {
+  background: #21262d;
+  color: var(--text);
+  font-weight: 600;
+  border-bottom: 1px solid #444c56;
+}
+.ev-table tbody tr:hover { background: rgba(88, 166, 255, 0.06); }
+.ev-table th:first-child, .ev-table td:first-child { text-align: left; }
+.ev-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 760px) {
+  .ev-grid-2 { grid-template-columns: 1fr; }
+  .ev-card   { padding: 16px 16px; }
+}
+.ev-kpi {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.ev-kpi-tile {
+  background: #21262d;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+.ev-kpi-tile .v { font-size: 18px; font-weight: 700; color: var(--text); }
+.ev-kpi-tile .l { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-top: 2px; }
+/* ----- Rules block (top) ----- */
+.rules {
+  max-width: 1200px;
+  margin: 18px auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 20px 14px 20px;
+}
+.rules h2 {
+  font-size: 15px;
+  margin: 0 0 8px 0;
+  color: var(--text);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+.rules h3 {
+  font-size: 11px;
+  margin: 14px 0 4px 0;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  font-weight: 600;
+}
+.rules-baseline {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-bottom: 4px;
+  padding: 8px 12px;
+  background: #21262d;
+  border-radius: 4px;
+}
+.rules-baseline strong { color: var(--text); }
+.rules-baseline .h { color: #8b949e; font-size: 11px; }
+.rules-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  margin: 4px 0;
+}
+.rules-table th, .rules-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+}
+.rules-table thead th {
+  background: #21262d;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 11.5px;
+}
+.rules-table th:first-child, .rules-table td:first-child {
+  text-align: left;
+  font-weight: 500;
+}
+.rules-table tr.row-fav td:first-child { color: #3fb950; font-weight: 600; }
+.rules-table tr.row-adv td:first-child { color: #f85149; font-weight: 600; }
+.rules-table tr.row-neu td:first-child { color: #d29922; font-weight: 600; }
+.rules-list {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #b6bec9;
+  margin: 4px 0;
+  padding-left: 20px;
+}
+.rules-list li { margin: 3px 0; }
+.rules-list strong { color: var(--text); }
+.rules p {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #b6bec9;
+  margin: 4px 0;
+}
+.rules code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: #21262d;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 12px;
+  color: var(--text);
+}
+.rules .row-up { color: #3fb950; }
+.rules .row-down { color: #f85149; }
+.rules .row-warn { color: #f85149; font-weight: 600; }
+/* ----- OOS 2026 panel ----- */
+.oos-panel {
+  max-width: 1200px;
+  margin: 18px auto;
+  background: linear-gradient(135deg, rgba(63,185,80,0.07) 0%, #161b22 55%, #161b22 100%);
+  border: 1px solid var(--border);
+  border-left: 3px solid #3fb950;
+  border-radius: 6px;
+  padding: 14px 20px 12px 20px;
+}
+.oos-panel .oos-tag {
+  font-size: 10.5px; color: #3fb950;
+  text-transform: uppercase; letter-spacing: 0.7px; font-weight: 700;
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-bottom: 4px;
+}
+.oos-panel .oos-tag::before {
+  content: ""; display: inline-block; width: 6px; height: 6px;
+  background: #3fb950; border-radius: 50%; box-shadow: 0 0 6px #3fb950;
+}
+.oos-panel h2 {
+  font-size: 14px; margin: 2px 0 10px 0; color: #f0f6fc; font-weight: 600;
+}
+.oos-panel .oos-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;
+}
+.oos-panel .oos-cell {
+  background: #21262d; border: 1px solid var(--border);
+  border-radius: 4px; padding: 9px 12px;
+}
+.oos-panel .oos-cell .oos-label {
+  font-size: 10.5px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 4px; font-weight: 600;
+}
+.oos-panel .oos-cell.fav .oos-label { color: #3fb950; }
+.oos-panel .oos-cell.adv .oos-label { color: #f85149; }
+.oos-panel .oos-cell .oos-stats {
+  font-size: 12px; color: #c9d1d9;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; line-height: 1.6;
+}
+.oos-panel .oos-cell .oos-stats b { color: #f0f6fc; }
+.oos-panel .oos-comment {
+  font-size: 12.5px; color: var(--muted);
+  margin: 10px 0 0 0; line-height: 1.55;
+}
+.oos-panel .oos-comment strong { color: #c9d1d9; }
+.oos-panel .oos-comment code {
+  background: #0d1117; border: 1px solid var(--border);
+  padding: 1px 5px; border-radius: 3px; font-size: 11px; color: #c9d1d9;
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>PUT SKEW NIVEL - Batman MT Regime Dashboard</h1>
+    <div class="subtitle">Percentil expanding del spread IV puts 25-delta vs ATM - SPX 10:30 ET, DTE 60</div>
+  </div>
+  <div class="latest">
+    <div class="label">Ultimo dato <span id="latest-date"></span></div>
+    <div><span class="v" id="latest-value">--</span><span class="regime" id="latest-regime">--</span></div>
+  </div>
+</div>
+    <div class="oos-cell fav">
+      <div class="oos-label">PUT_SKEW FAV (&ge;80)</div>
+      <div class="oos-stats">N=<b>85</b> &nbsp; mean=<b>+37.1</b><br>WR=<b>96.5%</b> &nbsp; PF=<b>38.5</b></div>
+    </div>
+    <div class="oos-cell">
+      <div class="oos-label">PUT_SKEW NEU (20-80)</div>
+      <div class="oos-stats">N=<b>337</b> &nbsp; mean=<b>&minus;16.6</b><br>WR=<b>4.7%</b> &nbsp; PF=<b>0.05</b></div>
+    </div>
+  </div>
+  <p class="oos-comment">
+    <strong>8 dias FAV en cluster del 3-13 marzo.</strong> 82 de 85 trades FAV ganaron (96.5%). El universo perdio en media; el cohort FAV entrego <strong>+37 pts mean PnL</strong> &mdash; un swing de +43 puntos sobre el universo. La regla operativa funciono live: entrar cuando PUT_SKEW &ge;80, evitar el resto. Metrica: <code>PnL_fwd_pts_25_mediana</code> (25% del DTE forward, ultimo disponible &mdash; los trades de marzo 2026 aun no maduraron).
+  </p>
+</div>
+<div id="chart" style="height: 580px;"></div>
+<div class="note">
+  <strong>PUT SKEW NIVEL</strong> = <code>skew_25d_vs50_pct_expanding</code>: percentil historico expanding
+  (sin lookahead) del spread de IV entre puts OTM 25-delta y puts ATM 50-delta a DTE 60. Mide cuan "caro"
+  esta el seguro de cola en puts respecto a su propia historia. <strong>FAVORABLE</strong> &gt;= 80
+  (puts OTM caros, alta demanda de proteccion / volatilidad), <strong>ADVERSO</strong> &le; 20 (puts
+  baratos, complacencia), <strong>NEUTRAL</strong> 20-80.
+</div>
+<div class="rules" id="rules">
+  <h2>Como usar PUT_SKEW NIVEL (operativa)</h2>
+  <div class="rules-baseline">
+    <strong>Baseline universo Batman MT</strong> (49,934 trades, 2019-2025):
+    WR 60% / 65% &nbsp;&middot;&nbsp; mean +8 / +21 pts &nbsp;&middot;&nbsp; PF 2.5 / 3.1
+    <span class="h">(d020 / d050)</span>
+  </div>
+
+  <h3>Entry &mdash; PUT_SKEW HOY</h3>
+  <table class="rules-table">
+    <thead>
+      <tr>
+        <th>Banda</th>
+        <th>WR vs univ</th>
+        <th>mean vs univ</th>
+        <th>PF vs univ</th>
+        <th>% univ</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="row-fav">
+        <td>FAV (&ge;80)</td>
+        <td><span class="row-up">+8pp / +18pp</span></td>
+        <td><span class="row-up">1.7x / 2.1x</span></td>
+        <td><span class="row-up">1.8x / 4.1x</span></td>
+        <td>15%</td>
+      </tr>
+      <tr class="row-neu">
+        <td>NEU (20-80)</td>
+        <td>+1pp / +4pp</td>
+        <td>1.1x / 1.1x</td>
+        <td>1.1x / 1.3x</td>
+        <td>69%</td>
+      </tr>
+      <tr class="row-adv">
+        <td>ADV (&le;20)</td>
+        <td><span class="row-down">-13pp / -27pp</span></td>
+        <td><span class="row-warn">0.2x / -0.3x</span></td>
+        <td><span class="row-warn">0.5x / 0.2x &nbsp;PERDIDA d050</span></td>
+        <td>17%</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="font-size:12px;color:#8b949e;margin-top:6px">
+    <strong>NOTA Batman MT</strong>: ADV en MT a d020 es marginalmente positivo (+1.3 pts) pero a d050
+    pierde -6.1 pts. La regla operativa de NO ABRIR sigue siendo solida pero la senal a corto plazo
+    es mas debil que en LT (donde ADV es negativo desde d020). Comparado con LT, MT discrimina mejor
+    en horizonte largo (d050) que en corto (d020).
+  </p>
+
+  <h3>Durante el trade (entry FAV)</h3>
+  <ul class="rules-list">
+    <li><strong>PUT_SKEW sigue &ge;80 al d020</strong> (55.6% de FAV entries):
+      WR persistentes 65.6% d020. Regimen mas persistente que en LT (51%).</li>
+    <li><strong>PUT_SKEW cae a &le;20 algun dia</strong> (solo 0.3% en 50d, MUY raro):
+      regimen muy persistente. NO degrada PnL.</li>
+  </ul>
+
+  <h3>Regla negativa</h3>
+  <p>NO reaccionar a oscilaciones intradia. <code>r(cambio_diario, PnL) = -0.02</code> (cero).
+  Solo importa la <strong>BANDA</strong> actual, no la trayectoria.</p>
+
+  <h3>Caveat</h3>
+  <p>Year stability MT: Spearman positivo en 4 de 7 anios. Fallos: 2019 (~0), 2021 (-0.25), 2023 (-0.21).
+  Mas debil que en LT (6/7). El edge MT vive sobre todo en horizontes largos (d050+).
+  Delta D10-D1 positivo en 5/7 anios (mismo nivel que LT).</p>
+</div>
+<section id="evidence">
+
+  <!-- 1. CONCEPTO -->
+  <div class="ev-card" id="ev-concept">
+    <div class="ev-tag">Seccion 1 / 7 &middot; Concepto</div>
+    <h2>Que mide PUT SKEW NIVEL</h2>
+    <p>
+      <strong>PUT SKEW NIVEL</strong> es el <strong>percentil expanding</strong> del spread de implied
+      volatility entre el put OTM 25-delta y el put ATM 50-delta, medido a DTE 60 con snapshot 10:30 ET.
+      "Expanding" significa que cada dia el percentil se calcula contra TODO el historial previo (sin
+      lookahead) — empieza poco discriminante en 2019 y converge a una distribucion estable hacia 2021+.
+    </p>
+    <ul>
+      <li><strong>Numerador</strong>: <code>iv_put_25d - iv_put_50d</code> (spread crudo, ~0.01-0.05 en escala IV).</li>
+      <li><strong>Normalizacion</strong>: percentil 0-100 contra todos los dias historicos previos al dia evaluado.</li>
+      <li><strong>Significado financiero</strong>: cuanto se paga por proteccion de cola (25d) respecto al ATM. Alto = miedo / demanda de hedge. Bajo = complacencia / oferta de hedge.</li>
+    </ul>
+    <div class="ev-callout">
+      <strong>Bandas operativas (convencion Batman MT):</strong> FAVORABLE &ge; 80 (puts caros,
+      condicion ideal para vender vol structurada que se beneficia de mean-reversion del skew) &middot;
+      NEUTRAL 20-80 &middot; ADVERSO &le; 20 (puts baratos, condicion adversa para vender vol).
+    </div>
+  </div>
+
+  <!-- 2. METODOLOGIA -->
+  <div class="ev-card" id="ev-method">
+    <div class="ev-tag">Seccion 2 / 7 &middot; Metodologia</div>
+    <h2>Como se valida la relacion con Batman MT</h2>
+    <p>
+      Estrategia de validacion: <strong>Batman MT</strong> (49,934 trades 2019-2025, sin filtro SPX).
+      Es la misma estrategia y el mismo dataset que valida la pagina hermana de TENSION
+      (LIBERATION_SCORE_BATMAN_LT). Mantener un solo universo de validacion para ambas paginas
+      simplifica la comparacion entre scores.
+    </p>
+    <p>
+      Para cada horizonte d001 a d049 calculamos:
+    </p>
+    <ul>
+      <li><strong>Spearman r</strong> entre PUT SKEW NIVEL al dia de entrada y <code>PnL_d{X}_mediana</code>.</li>
+      <li><strong>Bootstrap CI95%</strong> sobre 11 checkpoints d1, d5, d10..d45, d49 (n_boot=2000, seed=42).</li>
+      <li><strong>Deciles D1-D10</strong> del score: media, mediana, PF y win rate por decil.</li>
+      <li><strong>Year stability</strong>: spearman y delta D10-D1 calculados anio por anio 2019-2025.</li>
+      <li><strong>Regime split</strong>: PnL d020 y d050 condicionado a FAVORABLE / NEUTRAL / ADVERSO.</li>
+    </ul>
+    <p>
+      <strong>Sin filtro SPX</strong> aplicado: las metricas son sobre el universo Batman MT entero
+      para mantener consistencia con el bloque de reglas operativas del top de la pagina y con el
+      dashboard de TENSION.
+    </p>
+    <div id="ev-kpi-overview" class="ev-kpi"></div>
+    <div class="ev-meta">Generado: <span id="ev-generated-at">--</span></div>
+  </div>
+
+  <!-- 3. SPEARMAN POR HORIZONTE -->
+  <div class="ev-card" id="ev-spearman">
+    <div class="ev-tag">Seccion 3 / 7 &middot; Predictividad</div>
+    <h2>Spearman r de PUT SKEW NIVEL vs PnL Batman MT por horizonte</h2>
+    <p>
+      Curva de correlacion de rangos entre el PUT SKEW NIVEL al dia de entrada del trade y el
+      <code>PnL_d{X}_mediana</code> a cada horizonte. Marcadores con barra: 11 checkpoints con
+      bootstrap CI95% (n_boot=2000).
+    </p>
+    <img src="evidence/put_skew_spearman_curve.png" alt="Spearman r por horizonte" loading="lazy">
+    <div id="ev-tbl-spearman"></div>
+    <p>
+      Lectura: si la curva esta consistentemente por encima de cero y el CI95% del checkpoint inferior
+      tampoco cruza cero, hay evidencia de que el score es predictor estadisticamente significativo
+      del PnL Batman MT en ese horizonte.
+    </p>
+  </div>
+
+  <!-- 4. DECILES -->
+  <div class="ev-card" id="ev-deciles">
+    <div class="ev-tag">Seccion 4 / 7 &middot; Discriminacion por decil</div>
+    <h2>PnL d020 Batman MT por decil de PUT SKEW NIVEL</h2>
+    <p>
+      Particionamos el universo Batman MT en 10 grupos iguales (deciles) ordenados por PUT SKEW
+      NIVEL al dia de entrada. <strong>D1</strong> = puts mas baratos (SKEW bajo), <strong>D10</strong>
+      = puts mas caros (SKEW alto). Si la senal es predictiva, deberia existir progresion creciente
+      D1 &lt; D2 &lt; ... &lt; D10 en PnL medio.
+    </p>
+    <img src="evidence/put_skew_decile_bars.png" alt="PnL por decil" loading="lazy">
+    <div id="ev-tbl-deciles"></div>
+    <h2 style="margin-top:18px">Spread D10-D1 por horizonte</h2>
+    <p>Diferencia de PnL medio entre top decil (D10) y bottom decil (D1) a cada horizonte. Si el
+       spread es positivo y crece con el horizonte, el efecto del skew tiene persistencia en el PnL.</p>
+    <img src="evidence/put_skew_delta_curve.png" alt="Delta D10-D1 por horizonte" loading="lazy">
+  </div>
+
+  <!-- 5. YEAR STABILITY -->
+  <div class="ev-card" id="ev-years">
+    <div class="ev-tag">Seccion 5 / 7 &middot; Estabilidad temporal</div>
+    <h2>Year stability 2019-2025 (Batman MT)</h2>
+    <p>
+      Recalculamos Spearman r y delta D10-D1 anio a anio. Verde = positivo, rojo = negativo. Una senal
+      robusta debe mantener signo positivo en la mayoria de anios. Esta tabla muestra ahora la senal
+      sobre Batman MT directamente, sin filtro SPX.
+    </p>
+    <img src="evidence/put_skew_year_stability.png" alt="Year stability" loading="lazy">
+    <div id="ev-tbl-years"></div>
+  </div>
+
+  <!-- 6. REGIME SPLIT -->
+  <div class="ev-card" id="ev-regimes">
+    <div class="ev-tag">Seccion 6 / 7 &middot; Regimen condicional</div>
+    <h2>PnL Batman MT condicionado al regimen FAVORABLE / NEUTRAL / ADVERSO</h2>
+    <p>
+      Misma logica que las bandas de la grafica del header. Aqui medimos el PnL medio (con CI95
+      bootstrap) de los trades historicos cuando el score estaba en cada zona, en dos horizontes:
+      <strong>d020</strong> (canonico Batman MT, matches LIBERATION dashboard) y <strong>d050</strong>
+      (mid-life del trade).
+    </p>
+    <img src="evidence/put_skew_regime_pnl.png" alt="PnL por regimen" loading="lazy">
+    <div id="ev-tbl-regimes"></div>
+    <div class="ev-callout good" style="margin-top:14px">
+      <strong>Estos son los numeros que el bloque de reglas operativas del top de la pagina cita
+      directamente.</strong> ADV en Batman MT pierde en promedio (mean negativo a d020 y d050) — es
+      la "trampa real" que la regla 2 advierte.
+    </div>
+  </div>
+
+  <!-- 7. WINDOW FORWARD -->
+  <div class="ev-card" id="ev-window">
+    <div class="ev-tag">Seccion 7 / 7 &middot; Conditioning durante el trade</div>
+    <h2>Cambio de PnL forward cuando entra ventana de PUT SKEW alto vs bajo</h2>
+    <p>
+      Pregunta operativa: <strong>"tengo un trade YA ABIERTO; si entra una ventana donde PUT SKEW
+      NIVEL sube a P80+ o baja a P20- en t = 0/10/20/30/40 dias despues de la entrada, como cambia mi
+      PnL Batman MT los proximos 20-50 dias respecto a HOY?"</strong>
+    </p>
+    <p>
+      Computado <strong>desde cero sobre Batman MT</strong> (no es la version cross-strategy del
+      original): para cada trade Batman MT abierto, miramos el PUT SKEW al dia <code>t</code> de vida
+      del trade y comparamos delta_PnL entre <code>t</code> y <code>t+x</code>. Verde = HIGH
+      (P80+ en t), rojo = LOW (P20- en t). Las tres filas anaden filtros opcionales sobre
+      |SPX_chg en ventana| (sin filtro como caso principal, &le;3% y &le;2% como controles).
+    </p>
+    <img src="evidence/put_skew_window_forward.png" alt="Window forward" loading="lazy">
+    <div id="ev-tbl-window"></div>
+    <div class="ev-callout good" style="margin-top:14px">
+      Si el spread HIGH menos LOW es positivo en la fila "sin filtro", el regimen de PUT SKEW al
+      observar el trade tiene poder predictivo del cambio de PnL futuro. Util como senal de
+      monitoreo mid-trade en Batman MT.
+    </div>
+
+    <h2 style="margin-top:24px">Curva continua HIGH (P80+) vs LOW (P20-) al entry, horizontes d001-d050</h2>
+    <p>
+      Mismo concepto que la grafica de arriba pero <strong>continuo en el horizonte forward</strong>:
+      en vez de mostrar solo +20d y +50d como puntos discretos, traza el PnL medio Batman MT
+      <strong>cada dia desde d001 hasta d050</strong> para los trades abiertos con
+      <span style="color:#3fb950"><strong>PUT_SKEW &ge; 80</strong></span> al entry vs los abiertos con
+      <span style="color:#f85149"><strong>PUT_SKEW &le; 20</strong></span> al entry. Bandas
+      sombreadas = CI95% bootstrap (n=500). Lineas verticales punteadas = los 2 horizontes
+      discretos del grafico de arriba (d020, d050).
+    </p>
+    <img src="evidence/put_skew_continuous_curve.png" alt="Continuous curve P80 vs P20" loading="lazy">
+    <div class="ev-callout warn" style="margin-top:14px">
+      Lectura: si las dos bandas <strong>NO se solapan</strong> a partir de algun horizonte, hay
+      separacion estadistica significativa entre ambos cohortes. Si la separacion crece con el
+      horizonte, el efecto del regimen al entry tiene <strong>persistencia temporal</strong> en el
+      PnL Batman MT.
+    </div>
+  </div>
+
+</section>
+
+<div class="footer">
+  Last update: <span id="updated-at">--</span> &middot;
+  <a href="https://github.com/manumartinb/PUT_SKEW_NIVEL_BATMAN_MT" target="_blank" rel="noopener">repo</a>
+</div>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script>
+async function load() {
+  let d;
+  try {
+    const r = await fetch('data.json?_=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    d = await r.json();
+  } catch (e) {
+    document.getElementById('chart').innerHTML = '<div class="error">Error cargando data.json: ' + e.message + '</div>';
+    return;
+  }
+
+  document.getElementById('latest-date').textContent = '(' + d.latest.date + ')';
+  document.getElementById('latest-value').textContent = d.latest.pct.toFixed(1);
+  const regEl = document.getElementById('latest-regime');
+  regEl.textContent = d.latest.regime;
+  regEl.className = 'regime ' + d.latest.regime;
+  document.getElementById('updated-at').textContent = d.generated_at;
+
+  const traces = [
+    {
+      x: d.dates, y: d.pct, type: 'scatter', mode: 'lines',
+      name: 'PUT SKEW pct_expanding',
+      line: { color: '#58a6ff', width: 2.2 },
+      hovertemplate: '%{x|%Y-%m-%d}<br><b>PUT SKEW pct</b>: %{y:.1f}<extra></extra>',
+    },
+  ];
+
+  const layout = {
+    paper_bgcolor: '#161b22',
+    plot_bgcolor: '#161b22',
+    font: { color: '#c9d1d9', family: '-apple-system, sans-serif', size: 12 },
+    margin: { t: 40, r: 20, b: 50, l: 55 },
+    xaxis: {
+      gridcolor: '#21262d',
+      linecolor: '#30363d',
+      type: 'date',
+      rangeselector: {
+        buttons: [
+          { count: 30, label: '30D', step: 'day',   stepmode: 'backward' },
+          { count: 90, label: '90D', step: 'day',   stepmode: 'backward' },
+          { count: 1,  label: '1A',  step: 'year',  stepmode: 'backward' },
+          { count: 3,  label: '3A',  step: 'year',  stepmode: 'backward' },
+          { step: 'all', label: 'All' },
+        ],
+        bgcolor: '#21262d',
+        activecolor: '#1f6feb',
+        font: { color: '#c9d1d9', size: 11 },
+        bordercolor: '#30363d',
+        borderwidth: 1,
+      },
+      rangeslider: { visible: false },
+    },
+    yaxis: {
+      range: [0, 100],
+      gridcolor: '#21262d',
+      linecolor: '#30363d',
+      title: { text: 'Percentil expanding', font: { size: 12 } },
+      tickvals: [0, 20, 40, 60, 80, 100],
+    },
+    shapes: [
+      { type: 'rect', xref: 'paper', x0: 0, x1: 1, yref: 'y', y0: 80, y1: 100, fillcolor: '#1a7f37', opacity: 0.10, line: { width: 0 }, layer: 'below' },
+      { type: 'rect', xref: 'paper', x0: 0, x1: 1, yref: 'y', y0: 20, y1: 80,  fillcolor: '#9a6700', opacity: 0.06, line: { width: 0 }, layer: 'below' },
+      { type: 'rect', xref: 'paper', x0: 0, x1: 1, yref: 'y', y0: 0,  y1: 20,  fillcolor: '#cf222e', opacity: 0.10, line: { width: 0 }, layer: 'below' },
+      { type: 'line', xref: 'paper', x0: 0, x1: 1, yref: 'y', y0: 80, y1: 80, line: { color: '#1a7f37', width: 1, dash: 'dash' }, layer: 'below' },
+      { type: 'line', xref: 'paper', x0: 0, x1: 1, yref: 'y', y0: 20, y1: 20, line: { color: '#cf222e', width: 1, dash: 'dash' }, layer: 'below' },
+    ],
+    annotations: [
+      { xref: 'paper', x: 1, xanchor: 'right', yref: 'y', y: 90, text: 'FAVORABLE (Batman MT)', font: { color: '#3fb950', size: 10 }, showarrow: false, opacity: 0.7 },
+      { xref: 'paper', x: 1, xanchor: 'right', yref: 'y', y: 50, text: 'NEUTRAL',   font: { color: '#d29922', size: 10 }, showarrow: false, opacity: 0.7 },
+      { xref: 'paper', x: 1, xanchor: 'right', yref: 'y', y: 10, text: 'ADVERSO (Batman MT)',   font: { color: '#f85149', size: 10 }, showarrow: false, opacity: 0.7 },
+    ],
+    legend: { orientation: 'h', y: -0.18, x: 0.5, xanchor: 'center', bgcolor: 'rgba(0,0,0,0)' },
+    hovermode: 'x unified',
+  };
+
+  if (d.dates.length > 0) {
+    const last = d.dates[d.dates.length - 1];
+    const lastDt = new Date(last);
+    const start = new Date(lastDt);
+    start.setDate(start.getDate() - 90);
+    layout.xaxis.range = [start.toISOString().slice(0, 10), last];
+  }
+
+  Plotly.newPlot('chart', traces, layout, {
+    responsive: true,
+    displaylogo: false,
+    modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'],
+  });
+}
+load();
+
+async function loadEvidence() {
+  let ev;
+  try {
+    const r = await fetch('evidence/evidence.json?_=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) return;
+    ev = await r.json();
+  } catch (e) {
+    console.warn('evidence load failed:', e);
+    return;
+  }
+
+  const ga = document.getElementById('ev-generated-at');
+  if (ga) ga.textContent = ev.generated_at || '--';
+
+  const kpi = document.getElementById('ev-kpi-overview');
+  if (kpi && ev.put_skew && ev.put_skew.headline) {
+    const h = ev.put_skew.headline;
+    const tiles = [
+      { l: 'N trades',      v: ev.input ? ev.input.n_trades.toLocaleString() : '--' },
+      { l: 'N dias',        v: ev.input ? ev.input.n_days.toLocaleString() : '--' },
+      { l: 'Anios',         v: ev.input ? (ev.input.date_min.slice(0,4) + '-' + ev.input.date_max.slice(0,4)) : '--' },
+      { l: 'Filtro SPX',    v: ev.input ? ev.input.spx_filter : '--' },
+      { l: 'Spearman d020', v: (typeof h.spearman === 'number') ? h.spearman.toFixed(3) : '--' },
+      { l: 'Delta D10-D1',  v: (typeof h.delta_d10_d1 === 'number') ? (h.delta_d10_d1.toFixed(1) + ' pts') : '--' },
+      { l: 'PF D10/D1',     v: (typeof h.pf_ratio_d10_d1 === 'number') ? h.pf_ratio_d10_d1.toFixed(2) : '--' },
+    ];
+    kpi.innerHTML = tiles.map(t =>
+      '<div class="ev-kpi-tile"><div class="v">' + t.v + '</div><div class="l">' + t.l + '</div></div>'
+    ).join('');
+  }
+
+  const tableMap = {
+    'ev-tbl-spearman': 'spearman',
+    'ev-tbl-deciles':  'deciles',
+    'ev-tbl-years':    'years',
+    'ev-tbl-regimes':  'regimes',
+    'ev-tbl-window':   'window_forward',
+  };
+  if (ev.tables_html) {
+    for (const [elId, key] of Object.entries(tableMap)) {
+      const el = document.getElementById(elId);
+      if (el && typeof ev.tables_html[key] === 'string') {
+        el.innerHTML = ev.tables_html[key];
+      }
+    }
+  }
+}
+loadEvidence();
+</script>
+</body>
+</html>
