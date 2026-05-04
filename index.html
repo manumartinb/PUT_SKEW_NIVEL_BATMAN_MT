@@ -284,56 +284,6 @@ h1 { font-size: 18px; margin: 0; font-weight: 600; }
 .rules .row-up { color: #3fb950; }
 .rules .row-down { color: #f85149; }
 .rules .row-warn { color: #f85149; font-weight: 600; }
-/* ----- OOS 2026 panel ----- */
-.oos-panel {
-  max-width: 1200px;
-  margin: 18px auto;
-  background: linear-gradient(135deg, rgba(63,185,80,0.07) 0%, #161b22 55%, #161b22 100%);
-  border: 1px solid var(--border);
-  border-left: 3px solid #3fb950;
-  border-radius: 6px;
-  padding: 14px 20px 12px 20px;
-}
-.oos-panel .oos-tag {
-  font-size: 10.5px; color: #3fb950;
-  text-transform: uppercase; letter-spacing: 0.7px; font-weight: 700;
-  display: inline-flex; align-items: center; gap: 6px;
-  margin-bottom: 4px;
-}
-.oos-panel .oos-tag::before {
-  content: ""; display: inline-block; width: 6px; height: 6px;
-  background: #3fb950; border-radius: 50%; box-shadow: 0 0 6px #3fb950;
-}
-.oos-panel h2 {
-  font-size: 14px; margin: 2px 0 10px 0; color: #f0f6fc; font-weight: 600;
-}
-.oos-panel .oos-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;
-}
-.oos-panel .oos-cell {
-  background: #21262d; border: 1px solid var(--border);
-  border-radius: 4px; padding: 9px 12px;
-}
-.oos-panel .oos-cell .oos-label {
-  font-size: 10.5px; color: var(--muted);
-  text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 4px; font-weight: 600;
-}
-.oos-panel .oos-cell.fav .oos-label { color: #3fb950; }
-.oos-panel .oos-cell.adv .oos-label { color: #f85149; }
-.oos-panel .oos-cell .oos-stats {
-  font-size: 12px; color: #c9d1d9;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; line-height: 1.6;
-}
-.oos-panel .oos-cell .oos-stats b { color: #f0f6fc; }
-.oos-panel .oos-comment {
-  font-size: 12.5px; color: var(--muted);
-  margin: 10px 0 0 0; line-height: 1.55;
-}
-.oos-panel .oos-comment strong { color: #c9d1d9; }
-.oos-panel .oos-comment code {
-  background: #0d1117; border: 1px solid var(--border);
-  padding: 1px 5px; border-radius: 3px; font-size: 11px; color: #c9d1d9;
-}
 </style>
 </head>
 <body>
@@ -346,19 +296,6 @@ h1 { font-size: 18px; margin: 0; font-weight: 600; }
     <div class="label">Ultimo dato <span id="latest-date"></span></div>
     <div><span class="v" id="latest-value">--</span><span class="regime" id="latest-regime">--</span></div>
   </div>
-</div>
-    <div class="oos-cell fav">
-      <div class="oos-label">PUT_SKEW FAV (&ge;80)</div>
-      <div class="oos-stats">N=<b>85</b> &nbsp; mean=<b>+37.1</b><br>WR=<b>96.5%</b> &nbsp; PF=<b>38.5</b></div>
-    </div>
-    <div class="oos-cell">
-      <div class="oos-label">PUT_SKEW NEU (20-80)</div>
-      <div class="oos-stats">N=<b>337</b> &nbsp; mean=<b>&minus;16.6</b><br>WR=<b>4.7%</b> &nbsp; PF=<b>0.05</b></div>
-    </div>
-  </div>
-  <p class="oos-comment">
-    <strong>8 dias FAV en cluster del 3-13 marzo.</strong> 82 de 85 trades FAV ganaron (96.5%). El universo perdio en media; el cohort FAV entrego <strong>+37 pts mean PnL</strong> &mdash; un swing de +43 puntos sobre el universo. La regla operativa funciono live: entrar cuando PUT_SKEW &ge;80, evitar el resto. Metrica: <code>PnL_fwd_pts_25_mediana</code> (25% del DTE forward, ultimo disponible &mdash; los trades de marzo 2026 aun no maduraron).
-  </p>
 </div>
 <div id="chart" style="height: 580px;"></div>
 <div class="note">
@@ -464,10 +401,11 @@ h1 { font-size: 18px; margin: 0; font-weight: 600; }
     <div class="ev-tag">Seccion 2 / 7 &middot; Metodologia</div>
     <h2>Como se valida la relacion con Batman MT</h2>
     <p>
-      Estrategia de validacion: <strong>Batman MT</strong> (49,934 trades 2019-2025, sin filtro SPX).
-      Es la misma estrategia y el mismo dataset que valida la pagina hermana de TENSION
-      (LIBERATION_SCORE_BATMAN_LT). Mantener un solo universo de validacion para ambas paginas
-      simplifica la comparacion entre scores.
+      Estrategia de validacion: <strong>Batman MT</strong> (49,934 trades 2019-2025, sin filtro SPX),
+      cargados desde <code>[MAIN RANKEO MT]_combined_BATMAN_mediana_w_stats_w_vix_OWN_ALLDAYS.csv</code>.
+      Es el mismo score diario que las paginas hermanas (LT, EN, Allantis), pero validado contra el
+      universo Batman MT (DTE 40-200) en lugar del LT. La senal MT es ~67% de la fuerza LT en magnitud
+      pero es real y estadisticamente significativa en todos los horizontes.
     </p>
     <p>
       Para cada horizonte d001 a d049 calculamos:
@@ -544,15 +482,16 @@ h1 { font-size: 18px; margin: 0; font-weight: 600; }
     <p>
       Misma logica que las bandas de la grafica del header. Aqui medimos el PnL medio (con CI95
       bootstrap) de los trades historicos cuando el score estaba en cada zona, en dos horizontes:
-      <strong>d020</strong> (canonico Batman MT, matches LIBERATION dashboard) y <strong>d050</strong>
-      (mid-life del trade).
+      <strong>d020</strong> (twin al horizonte canonico de los dashboards hermanos LT/Allantis) y
+      <strong>d050</strong> (donde el edge MT es mas fuerte).
     </p>
     <img src="evidence/put_skew_regime_pnl.png" alt="PnL por regimen" loading="lazy">
     <div id="ev-tbl-regimes"></div>
     <div class="ev-callout good" style="margin-top:14px">
       <strong>Estos son los numeros que el bloque de reglas operativas del top de la pagina cita
-      directamente.</strong> ADV en Batman MT pierde en promedio (mean negativo a d020 y d050) — es
-      la "trampa real" que la regla 2 advierte.
+      directamente.</strong> A diferencia del LT, en MT el regimen ADV a d020 es marginalmente positivo
+      (+1.3 pts) pero a d050 pierde -6.1 pts. El edge negativo de ADV emerge a horizonte largo, no inmediato.
+      El regimen FAV en cambio captura +13.7 pts d020 / +42.8 pts d050 (PF 12.8 a d050).
     </div>
   </div>
 
