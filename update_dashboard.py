@@ -165,11 +165,6 @@ def _git(args: List[str]) -> subprocess.CompletedProcess:
 
 
 def push_to_github() -> int:
-    token = os.environ.get(TOKEN_ENV)
-    if not token:
-        print(f"[X] env var {TOKEN_ENV} not set; cannot push")
-        return 1
-
     _git(["config", "user.name", GH_USER_NAME])
     _git(["config", "user.email", GH_USER_EMAIL])
     _git(["add", "-A"])
@@ -185,15 +180,13 @@ def push_to_github() -> int:
         print(f"[X] commit failed: {commit.stderr.strip()}")
         return 1
 
-    remote_url = f"https://x-access-token:{token}@github.com/{GH_REPO}.git"
     push = subprocess.run(
-        ["git", "-C", str(DASHBOARD_DIR), "push", remote_url, BRANCH],
+        ["git", "-C", str(DASHBOARD_DIR), "push", "origin", BRANCH],
         capture_output=True,
         text=True,
     )
     if push.returncode != 0:
-        sanitized = push.stderr.replace(token, "***")
-        print(f"[X] push failed: {sanitized.strip()}")
+        print(f"[X] push failed: {push.stderr.strip()}")
         return 1
 
     print(f"[OK] pushed to https://manumartinb.github.io/PUT_SKEW_NIVEL_BATMAN_MT/")
